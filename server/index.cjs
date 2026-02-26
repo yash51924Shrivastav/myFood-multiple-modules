@@ -2,11 +2,18 @@ const express = require('express')
 const cors = require('cors')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 let MongoClient = null
 try {
   MongoClient = require('mongodb').MongoClient
 } catch (e) {
   MongoClient = null
+}
+let Razorpay = null
+try {
+  Razorpay = require('razorpay')
+} catch (e) {
+  Razorpay = null
 }
 
 const app = express()
@@ -296,6 +303,53 @@ app.post('/api/dishes', async (req, res) => {
     writeDB(mem)
     return res.json({ ok: true, dish })
   }
+})
+
+app.post('/api/pay/create-order', async (req, res) => {
+  const { amount } = req.body || {}
+  const amt = Math.round(Number(amount) * 100)
+  if (!amt || amt <= 0) return res.status(400).json({ error: 'Invalid amount' })
+  const key_id = process.env.RAZORPAY_KEY_ID
+  const key_secret = process.env.RAZORPAY_KEY_SECRET
+  if (!Razorpay || !key_id || !key_secret) {
+    return res.json({
+      mock: true,
+      id: `order_mock_${Date.now()}`,
+      amount: amt,
+      currency: 'INR',
+      message: 'Razorpay keys not configured on server'
+    })
+  }
+  try {
+    const rp = new Razorpay({ key_id, key_secret })
+    const order = await rp.orders.create({
+      amount: amt,
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`,
+      payment_capture: 1
+    })
+    return res.json({ id: order.id, amount: order.amount, currency: order.currency, key: key_id })
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to create order' })
+  }
+})
+
+app.post('/api/pay/verify', async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {}
+  const key_secret = process.env.RAZORPAY_KEY_SECRET
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'Invalid payload' })
+  }
+  if (!key_secret) {
+    return res.json({ ok: true, mock: true })
+  }
+  const hmac = crypto.createHmac('sha256', key_secret)
+  hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`)
+  const digest = hmac.digest('hex')
+  if (digest === razorpay_signature) {
+    return res.json({ ok: true })
+  }
+  return res.status(400).json({ ok: false, error: 'Signature mismatch' })
 })
 
 app.get('/api/reservations', async (req, res) => {

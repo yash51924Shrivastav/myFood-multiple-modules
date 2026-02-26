@@ -1,14 +1,60 @@
 import { useCart } from '../../shared/cart/CartContext'
-import { createReservation } from '../../shared/api/client'
+import { createPaymentOrder, verifyPayment } from '../../shared/api/client'
 import { useState } from 'react'
 
 export default function Cart() {
   const cart = useCart()
   const [status, setStatus] = useState(null)
 
+  async function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve(true)
+      const s = document.createElement('script')
+      s.src = src
+      s.onload = () => resolve(true)
+      s.onerror = () => reject(new Error('Failed to load script'))
+      document.body.appendChild(s)
+    })
+  }
+
   async function checkout() {
-    setStatus('Order placed')
-    cart.clear()
+    try {
+      const total = cart.total()
+      if (total <= 0) return
+      setStatus('Initializing payment...')
+      const order = await createPaymentOrder(total)
+      if (order.mock) {
+        setStatus('Payment simulated — configure Razorpay keys for live checkout')
+        cart.clear()
+        return
+      }
+      await loadScript('https://checkout.razorpay.com/v1/checkout.js')
+      const opts = {
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        name: 'Exotic Cuisines',
+        description: 'Order payment',
+        order_id: order.id,
+        handler: async function (resp) {
+          const result = await verifyPayment(resp)
+          if (result?.ok) {
+            setStatus('Payment successful — order placed')
+            cart.clear()
+          } else {
+            setStatus('Payment verification failed')
+          }
+        },
+        theme: { color: '#a855f7' }
+      }
+      const rz = new window.Razorpay(opts)
+      rz.on('payment.failed', function () {
+        setStatus('Payment failed — please try again')
+      })
+      rz.open()
+    } catch (e) {
+      setStatus('Unable to start payment')
+    }
   }
 
   return (

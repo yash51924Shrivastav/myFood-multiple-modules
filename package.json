@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "server": "node server/index.cjs",
@@ -12,7 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.0",
+    "razorpay": "^2.9.2",
     "@react-three/drei": "^9.97.0",
     "@react-three/fiber": "^8.15.0",
     "cors": "^2.8.6",

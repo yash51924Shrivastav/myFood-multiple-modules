@@ -7,12 +7,12 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "node ./node_modules/vite/bin/vite.js",
     "server": "node server/index.cjs",
     "start": "node server/index.cjs",
     "prod": "npm run build && node server/index.cjs",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "node ./node_modules/vite/bin/vite.js build",
+    "preview": "node ./node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
     "razorpay": "^2.9.2",

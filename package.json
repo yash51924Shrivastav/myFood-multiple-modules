@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.cjs",
+    "start": "node server/index.cjs",
+    "prod": "npm run build && node server/index.cjs",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "better-sqlite3": "^9.4.0",
     "@react-three/drei": "^9.97.0",
     "@react-three/fiber": "^8.15.0",
     "cors": "^2.8.6",

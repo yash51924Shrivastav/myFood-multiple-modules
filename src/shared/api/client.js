@@ -34,3 +34,15 @@ export async function getReservations() {
   const res = await fetch(`${API_URL}/api/reservations`)
   return res.json()
 }
+
+export async function getRestaurants() {
+  const res = await fetch(`${API_URL}/api/restaurants`)
+  return res.json()
+}
+
+export async function getRestaurantDishes(restaurantId, category) {
+  const url = new URL(`${API_URL}/api/restaurants/${restaurantId}/dishes`)
+  if (category) url.searchParams.set('category', category)
+  const res = await fetch(url)
+  return res.json()
+}

@@ -17,8 +17,9 @@ export default function Nav() {
       <div className="container flex items-center justify-between py-3">
         <div className="text-xl font-semibold text-brand">Exotic Cuisines</div>
         <nav className="flex items-center gap-2">
-          <Link to="/">Home</Link>
-          <Link to="/menu">Menu</Link>
+          <Link to="/">Restaurants</Link>
+          <Link to="/cart">Cart</Link>
+          <Link to="/menu">Legacy Menu</Link>
           <Link to="/reservations">Reservations</Link>
           <Link to="/about">About</Link>
           <Link to="/admin">Admin</Link>

@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'react-router-dom'
 import { getCategories, getDishes } from '../../shared/api/client'
+import { useCart } from '../../shared/cart/CartContext'
+// removed duplicate import
 
 export default function Menu() {
   const containerRef = useRef(null)
   const [active, setActive] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [searchParams] = useSearchParams()
+  const cart = useCart()
 
   const grouped = useMemo(() => (
     [
@@ -31,6 +34,24 @@ export default function Menu() {
       grouped[1].items = b.dishes
       grouped[2].items = c.dishes
       grouped[3].items = d.dishes
+      setLoaded(true)
+    }).catch(async () => {
+      // Fallback to static JSON if API is not reachable
+      const mod = await import('../../data/menu_exotic.json')
+      const src = mod.default
+      const buckets = { Starters: [], 'Main Course': [], Desserts: [], Smoothies: [] }
+      for (const cat of src.categories) {
+        const name = cat.name.toLowerCase()
+        let bucket = 'Main Course'
+        if (name.includes('starter')) bucket = 'Starters'
+        else if (name.includes('dessert')) bucket = 'Desserts'
+        else if (name.includes('shake') || name.includes('beverage')) bucket = 'Smoothies'
+        buckets[bucket].push(...cat.items.map(it => ({ id: it.id || Math.random().toString(36).slice(2), name: it.name, price: (it.price ?? it.prices?.[0]?.price) || 0, img: it.img })))
+      }
+      grouped[0].items = buckets['Starters']
+      grouped[1].items = buckets['Main Course']
+      grouped[2].items = buckets['Desserts']
+      grouped[3].items = buckets['Smoothies']
       setLoaded(true)
     })
     return () => { alive = false }
@@ -109,6 +130,17 @@ export default function Menu() {
                       )}
                     </div>
                     {item.desc && <p className="mt-2 text-sm text-gray-600">{item.desc}</p>}
+                    {item.price !== undefined && (
+                      cart.qty(item.id) === 0 ? (
+                        <button className="btn mt-3" onClick={() => cart.add(item, 1)}>Add</button>
+                      ) : (
+                        <div className="mt-3 inline-flex items-center gap-2">
+                          <button className="btn px-3" onClick={() => cart.dec(item.id)}>-</button>
+                          <span className="min-w-[1.5rem] text-center">{cart.qty(item.id)}</span>
+                          <button className="btn px-3" onClick={() => cart.add(item, 1)}>+</button>
+                        </div>
+                      )
+                    )}
                   </div>
                   <div className="transition-transform duration-300 group-hover:scale-[1.01]"></div>
                 </motion.article>
